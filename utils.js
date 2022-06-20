@@ -43,7 +43,9 @@ const syscoinNetworks = {
 const bitcoinZPubTypes = { mainnet: { zprv: '04b2430c', zpub: '04b24746' }, testnet: { vprv: '045f18bc', vpub: '045f1cf6' } }
 const bitcoinXPubTypes = { mainnet: { zprv: bitcoinNetworks.mainnet.bip32.private, zpub: bitcoinNetworks.mainnet.bip32.public }, testnet: { vprv: bitcoinNetworks.testnet.bip32.private, vpub: bitcoinNetworks.testnet.bip32.public } }
 const syscoinZPubTypes = { mainnet: { zprv: '04b2430c', zpub: '04b24746' }, testnet: { vprv: '045f18bc', vpub: '045f1cf6' } }
-const syscoinXPubTypes = { mainnet: { zprv: syscoinNetworks.mainnet.bip32.private, zpub: syscoinNetworks.mainnet.bip32.public }, testnet: { vprv: syscoinNetworks.testnet.bip32.private, vpub: syscoinNetworks.testnet.bip32.public } }
+// john 20220620
+const syscoinXPubTypes = { mainnet: { zprv: '0488ade4', zpub: '0488b21e' }, testnet: { vprv: '04358394', vpub: '043587cf' } }
+
 const syscoinSLIP44 = 57
 const bitcoinSLIP44 = 0
 let trezorInitialized = false
@@ -1070,10 +1072,13 @@ Returns: bip32 node for derived account
 */
 TrezorSigner.prototype.deriveAccount = async function (index) {
   let bipNum = 44
+  // john 20220620
+  /*
   if (this.Signer.pubTypes === syscoinZPubTypes ||
     this.Signer.pubTypes === bitcoinZPubTypes) {
     bipNum = 84
   }
+  */
   const coin = this.Signer.SLIP44 === syscoinSLIP44 ? 'sys' : 'btc'
   const keypath = 'm/' + bipNum + "'/" + this.Signer.SLIP44 + "'/" + index + "'"
   if (this.Signer.isTestnet) {
@@ -1102,10 +1107,12 @@ TrezorSigner.prototype.deriveAccount = async function (index) {
 
 HDSigner.prototype.deriveAccount = function (index) {
   let bipNum = 44
+  // john 20220620
+  /*
   if (this.Signer.pubTypes === syscoinZPubTypes ||
     this.Signer.pubTypes === bitcoinZPubTypes) {
-    bipNum = 84
-  }
+    bipNum = 84 
+  */
   return this.fromMnemonic.deriveAccount(index, bipNum)
 }
 
@@ -1393,10 +1400,13 @@ HDSigner.prototype.setLatestIndexesFromXPubTokens = function (tokens) {
 }
 Signer.prototype.createAddress = function (addressIndex, isChange) {
   let bipNum = 44
+  // john 20220620
+  /*
   if (this.pubTypes === syscoinZPubTypes ||
     this.pubTypes === bitcoinZPubTypes) {
     bipNum = 84
   }
+  */
   return this.accounts[this.accountIndex].getAddress(addressIndex, isChange, bipNum)
 }
 TrezorSigner.prototype.createAddress = function (addressIndex, isChange) {
@@ -1405,6 +1415,33 @@ TrezorSigner.prototype.createAddress = function (addressIndex, isChange) {
 HDSigner.prototype.createAddress = function (addressIndex, isChange) {
   return this.Signer.createAddress(addressIndex, isChange)
 }
+
+// john 20220620
+Signer.prototype.getPrivateKey = function (addressIndex, isChange) {
+  let bipNum = 44
+  if (this.pubTypes === syscoinZPubTypes ||
+    this.pubTypes === bitcoinZPubTypes) {
+    bipNum = 84
+  }
+  return this.accounts[this.accountIndex].getPrivateKey(addressIndex, isChange, bipNum)
+}
+HDSigner.prototype.getPrivateKey = function (addressIndex, isChange) {
+  return this.Signer.getPrivateKey(addressIndex, isChange)
+}
+
+// john 20220620
+Signer.prototype.getPublicKey = function (addressIndex, isChange) {
+  let bipNum = 44
+  if (this.pubTypes === syscoinZPubTypes ||
+    this.pubTypes === bitcoinZPubTypes) {
+    bipNum = 84
+  }
+  return this.accounts[this.accountIndex].getPublicKey(addressIndex, isChange, bipNum)
+}
+HDSigner.prototype.getPublicKey = function (addressIndex, isChange) {
+  return this.Signer.getPublicKey(addressIndex, isChange)
+}
+
 /* createKeypair
 Purpose: Sets the change and receiving indexes from XPUB tokens passed in, from a backend provider response
 Param addressIndex: Optional. HD path address index. If not provided uses the stored change/recv indexes for the last path prefix
@@ -1428,10 +1465,13 @@ Returns: bip32 path string
 Signer.prototype.getHDPath = function (addressIndex, isChange) {
   const changeNum = isChange ? '1' : '0'
   let bipNum = 44
+  // john 20220620
+  /*
   if (this.pubTypes === syscoinZPubTypes ||
     this.pubTypes === bitcoinZPubTypes) {
     bipNum = 84
   }
+  */
   let recvIndex = isChange ? this.changeIndex : this.receivingIndex
   if (addressIndex) {
     recvIndex = addressIndex
