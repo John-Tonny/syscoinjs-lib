@@ -854,7 +854,7 @@ Param networks: Optional. Defaults to Syscoin network. bitcoinjs-lib network set
 Param SLIP44: Optional. SLIP44 value for the coin, see: https://github.com/satoshilabs/slips/blob/master/slip-0044.md
 Param pubTypes: Optional. Defaults to Syscoin ZPub/VPub types. Specific ZPub for bip84 and VPub for testnet
 */
-function Signer (password, isTestnet, networks, SLIP44, pubTypes) {
+function Signer (password, isTestnet, networks, SLIP44, pubTypes, segwit) {
   this.isTestnet = isTestnet || false
   this.networks = networks || syscoinNetworks
   this.password = password
@@ -871,8 +871,10 @@ function Signer (password, isTestnet, networks, SLIP44, pubTypes) {
   this.receivingIndex = -1
   this.accountIndex = 0
   this.setIndexFlag = 0
+
+  this.segwit = segwit || false;
 }
-function TrezorSigner (password, isTestnet, networks, SLIP44, pubTypes, connectSrc, disableLazyLoad) {
+function TrezorSigner (password, isTestnet, networks, SLIP44, pubTypes, connectSrc, disableLazyLoad, segwit) {
   try {
     if (!trezorInitialized) {
       connectSrc = connectSrc || DEFAULT_TREZOR_DOMAIN
@@ -890,11 +892,11 @@ function TrezorSigner (password, isTestnet, networks, SLIP44, pubTypes, connectS
   } catch (e) {
     throw new Error('TrezorSigner should be called only from browser context: ' + e)
   }
-  this.Signer = new Signer(password, isTestnet, networks, SLIP44, pubTypes)
+  this.Signer = new Signer(password, isTestnet, networks, SLIP44, pubTypes, segwit)
   this.restore(this.Signer.password)
 }
-function HDSigner (mnemonic, password, isTestnet, networks, SLIP44, pubTypes) {
-  this.Signer = new Signer(password, isTestnet, networks, SLIP44, pubTypes)
+function HDSigner (mnemonic, password, isTestnet, networks, SLIP44, pubTypes, segwit) {
+  this.Signer = new Signer(password, isTestnet, networks, SLIP44, pubTypes, segwit)
   this.mnemonic = mnemonic // serialized
 
   /* eslint new-cap: ["error", { "newIsCap": false }] */
@@ -1072,13 +1074,10 @@ Returns: bip32 node for derived account
 */
 TrezorSigner.prototype.deriveAccount = async function (index) {
   let bipNum = 44
-  // john 20220620
-  /*
   if (this.Signer.pubTypes === syscoinZPubTypes ||
     this.Signer.pubTypes === bitcoinZPubTypes) {
     bipNum = 84
   }
-  */
   const coin = this.Signer.SLIP44 === syscoinSLIP44 ? 'sys' : 'btc'
   const keypath = 'm/' + bipNum + "'/" + this.Signer.SLIP44 + "'/" + index + "'"
   if (this.Signer.isTestnet) {
@@ -1107,12 +1106,9 @@ TrezorSigner.prototype.deriveAccount = async function (index) {
 
 HDSigner.prototype.deriveAccount = function (index) {
   let bipNum = 44
-  // john 20220620
-  /*
   if (this.Signer.pubTypes === syscoinZPubTypes ||
     this.Signer.pubTypes === bitcoinZPubTypes) {
     bipNum = 84 
-  */
   return this.fromMnemonic.deriveAccount(index, bipNum)
 }
 
@@ -1169,7 +1165,7 @@ TrezorSigner.prototype.restore = function (password) {
   this.Signer.receivingIndex = -1
   this.Signer.accountIndex = 0
   for (let i = 0; i < numAccounts; i++) {
-    this.Signer.accounts.push(new BIP84.fromZPub(decryptedData.xpubArr[i], this.Signer.pubTypes, this.Signer.networks))
+    this.Signer.accounts.push(new BIP84.fromZPub(decryptedData.xpubArr[i], this.Signer.pubTypes, this.Signer.networks, this.Signer.segwit))
     if (this.Signer.accounts[i].getAccountPublicKey() !== decryptedData.xpubArr[i]) {
       throw new Error('Account public key mismatch,check pubtypes and networks being used')
     }
@@ -1205,7 +1201,7 @@ HDSigner.prototype.restore = function (password) {
   for (let i = 0; i < numAccounts; i++) {
     const child = this.deriveAccount(i)
     /* eslint new-cap: ["error", { "newIsCap": false }] */
-    this.Signer.accounts.push(new BIP84.fromZPrv(child, this.Signer.pubTypes, this.Signer.networks))
+    this.Signer.accounts.push(new BIP84.fromZPrv(child, this.Signer.pubTypes, this.Signer.networks, this.Signer.segwit))
   }
 
   return this
@@ -1320,7 +1316,7 @@ TrezorSigner.prototype.createAccount = async function () {
   return new Promise((resolve, reject) => {
     this.deriveAccount(this.Signer.accounts.length).then(child => {
       this.Signer.accountIndex = this.Signer.accounts.length
-      this.Signer.accounts.push(new BIP84.fromZPub(child.descriptor, this.Signer.pubTypes, this.Signer.networks))
+      this.Signer.accounts.push(new BIP84.fromZPub(child.descriptor, this.Signer.pubTypes, this.Signer.networks, this.Signer.segwit))
       this.backup()
       resolve(this.Signer.accountIndex)
     }).catch(err => {
@@ -1337,7 +1333,7 @@ HDSigner.prototype.createAccount = function () {
   const child = this.deriveAccount(this.Signer.accounts.length)
   this.Signer.accountIndex = this.Signer.accounts.length
   /* eslint new-cap: ["error", { "newIsCap": false }] */
-  this.Signer.accounts.push(new BIP84.fromZPrv(child, this.Signer.pubTypes, this.Signer.networks))
+  this.Signer.accounts.push(new BIP84.fromZPrv(child, this.Signer.pubTypes, this.Signer.networks, this.Signer.segwit))
   this.backup()
   return this.Signer.accountIndex
 }
@@ -1400,13 +1396,10 @@ HDSigner.prototype.setLatestIndexesFromXPubTokens = function (tokens) {
 }
 Signer.prototype.createAddress = function (addressIndex, isChange) {
   let bipNum = 44
-  // john 20220620
-  /*
   if (this.pubTypes === syscoinZPubTypes ||
     this.pubTypes === bitcoinZPubTypes) {
     bipNum = 84
   }
-  */
   return this.accounts[this.accountIndex].getAddress(addressIndex, isChange, bipNum)
 }
 TrezorSigner.prototype.createAddress = function (addressIndex, isChange) {
