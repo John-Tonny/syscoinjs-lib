@@ -1109,6 +1109,7 @@ HDSigner.prototype.deriveAccount = function (index) {
   if (this.Signer.pubTypes === syscoinZPubTypes ||
     this.Signer.pubTypes === bitcoinZPubTypes) {
     bipNum = 84 
+  }
   return this.fromMnemonic.deriveAccount(index, bipNum)
 }
 
@@ -1458,13 +1459,10 @@ Returns: bip32 path string
 Signer.prototype.getHDPath = function (addressIndex, isChange) {
   const changeNum = isChange ? '1' : '0'
   let bipNum = 44
-  // john 20220620
-  /*
   if (this.pubTypes === syscoinZPubTypes ||
     this.pubTypes === bitcoinZPubTypes) {
     bipNum = 84
   }
-  */
   let recvIndex = isChange ? this.changeIndex : this.receivingIndex
   if (addressIndex) {
     recvIndex = addressIndex
