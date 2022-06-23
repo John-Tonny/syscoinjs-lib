@@ -854,7 +854,7 @@ Param networks: Optional. Defaults to Syscoin network. bitcoinjs-lib network set
 Param SLIP44: Optional. SLIP44 value for the coin, see: https://github.com/satoshilabs/slips/blob/master/slip-0044.md
 Param pubTypes: Optional. Defaults to Syscoin ZPub/VPub types. Specific ZPub for bip84 and VPub for testnet
 */
-function Signer (password, isTestnet, networks, SLIP44, pubTypes, segwit) {
+function Signer (password, isTestnet, networks, SLIP44, pubTypes) {
   this.isTestnet = isTestnet || false
   this.networks = networks || syscoinNetworks
   this.password = password
@@ -872,9 +872,13 @@ function Signer (password, isTestnet, networks, SLIP44, pubTypes, segwit) {
   this.accountIndex = 0
   this.setIndexFlag = 0
 
-  this.segwit = segwit || false;
+  this.segwit = false;
+  if(this.pubTypes == syscoinZPubTypes){
+    this.segwit = true;
+  }
+
 }
-function TrezorSigner (password, isTestnet, networks, SLIP44, pubTypes, connectSrc, disableLazyLoad, segwit) {
+function TrezorSigner (password, isTestnet, networks, SLIP44, pubTypes, connectSrc, disableLazyLoad) {
   try {
     if (!trezorInitialized) {
       connectSrc = connectSrc || DEFAULT_TREZOR_DOMAIN
@@ -892,11 +896,11 @@ function TrezorSigner (password, isTestnet, networks, SLIP44, pubTypes, connectS
   } catch (e) {
     throw new Error('TrezorSigner should be called only from browser context: ' + e)
   }
-  this.Signer = new Signer(password, isTestnet, networks, SLIP44, pubTypes, segwit)
+  this.Signer = new Signer(password, isTestnet, networks, SLIP44, pubTypes)
   this.restore(this.Signer.password)
 }
-function HDSigner (mnemonic, password, isTestnet, networks, SLIP44, pubTypes, segwit) {
-  this.Signer = new Signer(password, isTestnet, networks, SLIP44, pubTypes, segwit)
+function HDSigner (mnemonic, password, isTestnet, networks, SLIP44, pubTypes) {
+  this.Signer = new Signer(password, isTestnet, networks, SLIP44, pubTypes)
   this.mnemonic = mnemonic // serialized
 
   /* eslint new-cap: ["error", { "newIsCap": false }] */
@@ -1078,6 +1082,12 @@ TrezorSigner.prototype.deriveAccount = async function (index) {
     this.Signer.pubTypes === bitcoinZPubTypes) {
     bipNum = 84
   }
+    
+  // john 20220620
+  if(this.Signer.segwit){
+    bipNum = 44;
+  }
+
   const coin = this.Signer.SLIP44 === syscoinSLIP44 ? 'sys' : 'btc'
   const keypath = 'm/' + bipNum + "'/" + this.Signer.SLIP44 + "'/" + index + "'"
   if (this.Signer.isTestnet) {
@@ -1110,6 +1120,12 @@ HDSigner.prototype.deriveAccount = function (index) {
     this.Signer.pubTypes === bitcoinZPubTypes) {
     bipNum = 84 
   }
+
+  // john 20220620
+  if(this.Signer.segwit){
+    bipNum = 44;
+  }
+
   return this.fromMnemonic.deriveAccount(index, bipNum)
 }
 
@@ -1401,6 +1417,13 @@ Signer.prototype.createAddress = function (addressIndex, isChange) {
     this.pubTypes === bitcoinZPubTypes) {
     bipNum = 84
   }
+  
+  
+  // john 20220620
+  if(this.segwit){
+    bipNum = 44;
+  }
+  
   return this.accounts[this.accountIndex].getAddress(addressIndex, isChange, bipNum)
 }
 TrezorSigner.prototype.createAddress = function (addressIndex, isChange) {
@@ -1417,6 +1440,12 @@ Signer.prototype.getPrivateKey = function (addressIndex, isChange) {
     this.pubTypes === bitcoinZPubTypes) {
     bipNum = 84
   }
+
+  // john 20220620
+  if(this.segwit){
+    bipNum = 44;
+  }
+  
   return this.accounts[this.accountIndex].getPrivateKey(addressIndex, isChange, bipNum)
 }
 HDSigner.prototype.getPrivateKey = function (addressIndex, isChange) {
@@ -1430,6 +1459,12 @@ Signer.prototype.getPublicKey = function (addressIndex, isChange) {
     this.pubTypes === bitcoinZPubTypes) {
     bipNum = 84
   }
+
+  // john 20220620
+  if(this.segwit){
+    bipNum = 44;
+  }
+
   return this.accounts[this.accountIndex].getPublicKey(addressIndex, isChange, bipNum)
 }
 HDSigner.prototype.getPublicKey = function (addressIndex, isChange) {
@@ -1463,6 +1498,12 @@ Signer.prototype.getHDPath = function (addressIndex, isChange) {
     this.pubTypes === bitcoinZPubTypes) {
     bipNum = 84
   }
+
+  // john 20220620
+  if(this.Signer.segwit){
+    bipNum = 44;
+  }
+
   let recvIndex = isChange ? this.changeIndex : this.receivingIndex
   if (addressIndex) {
     recvIndex = addressIndex
