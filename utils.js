@@ -1656,6 +1656,40 @@ function isPaymentFactory (payment) {
 }
 const isP2WSHScript = isPaymentFactory(bjs.payments.p2wsh)
 
+// john 20220709
+function inputFinalizeGetAmts1 (inputs, tx, cache, mustFinalize) {
+  let inputAmount = 0
+  inputs.forEach((input, idx) => {
+    if (input.script) { tx.ins[idx].script = input.script }
+    if (input.witness) {
+      tx.ins[idx].witness = input.witness;
+    }
+    if (input.witnessUtxo) {
+      inputAmount += input.witnessUtxo.value
+      tx.ins[idx].script = input.witnessUtxo.script
+      tx.ins[idx].satoshis = input.witnessUtxo.value
+      tx.ins[idx].path = input.unknownKeyVals[1].value.toString()
+      tx.ins[idx].address = input.unknownKeyVals[0].value.toString()
+    } else if (input.nonWitnessUtxo) {
+      const nwTx = nonWitnessUtxoTxFromCache(cache, input, idx)
+      const vout = tx.ins[idx].index
+      const out = nwTx.outs[vout]
+      inputAmount += out.value
+    }
+  })
+  const outputAmount = tx.outs.reduce((total, o) => total + o.value, 0)
+  const fee = inputAmount - outputAmount
+  // SYSCOIN for burn allocations, this will be negative
+  // if (fee < 0) {
+  //  throw new Error('Outputs are spending more than Inputs');
+  // }
+  const bytes = tx.virtualSize()
+  cache.__FEE = fee
+  cache.__EXTRACTED_TX = tx
+  cache.__FEE_RATE = Math.floor(fee / bytes)
+}
+
+
 // override of psbt.js inputFinalizeGetAmts without fee < 0 check
 function inputFinalizeGetAmts (inputs, tx, cache, mustFinalize) {
   let inputAmount = 0
@@ -1735,6 +1769,18 @@ class SPSBT extends bjs.Psbt {
 
   getFee () {
     return getTxCacheValue('__FEE', 'fee', this.data.inputs, this.__CACHE)
+  }
+
+  // john 20220709
+  extractTransaction1 (disableFeeCheck) {
+    const c = this.__CACHE
+    if (!disableFeeCheck) {
+      checkFees(this, c, this.opts)
+    }
+    if (c.__EXTRACTED_TX) return c.__EXTRACTED_TX
+    const tx = c.__TX.clone()
+    inputFinalizeGetAmts1(this.data.inputs, tx, c, true)
+    return tx
   }
 
   extractTransaction (disableFeeCheck) {
