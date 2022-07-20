@@ -651,7 +651,7 @@ Param utxos: Optional. Pass in specific utxos to fund a transaction.
 Param redeemOrWitnessScript: Optional. redeemScript for P2SH and witnessScript for P2WSH spending conditions.
 Returns: PSBT if if Signer is set or result object which is used to create PSBT and sign/send if xpub/address are passed in to fund transaction
 */
-Syscoin.prototype.assetAllocationMint = async function (assetOpts, txOpts, assetMap, sysChangeAddress, feeRate, sysFromXpubOrAddress, utxos, redeemOrWitnessScript) {
+Syscoin.prototype.assetAllocationMint = async function (assetOpts, txOpts, assetMap, sysChangeAddress, feeRate, sysFromXpubOrAddress, utxos, redeemOrWitnessScript, changeAddress) {
   if (this.Signer) {
     if (assetMap) {
       for (const valueAssetObj of assetMap.values()) {
@@ -665,30 +665,33 @@ Syscoin.prototype.assetAllocationMint = async function (assetOpts, txOpts, asset
     }
   }
   if (!assetMap) {
-    const ethProof = await utils.buildEthProof(assetOpts)
-    let changeAddress
-    if (this.Signer) {
-      changeAddress = await this.Signer.getNewChangeAddress()
-    }
-    if (sysChangeAddress === changeAddress) {
-      throw Object.assign(
-        new Error('Syscoin and asset change address cannot be the same for assetAllocationMint!'),
-        { code: 402 }
-      )
-    }
-    assetMap = new Map([
-      [ethProof.assetguid, { changeAddress: changeAddress, outputs: [{ value: ethProof.amount, address: ethProof.destinationaddress }] }]
-    ])
-    assetOpts = {
-      ethtxid: Buffer.from(ethProof.ethtxid, 'hex'),
-      blockhash: Buffer.from(ethProof.blockhash, 'hex'),
-      txvalue: Buffer.from(ethProof.txvalue, 'hex'),
-      txroot: Buffer.from(ethProof.txroot, 'hex'),
-      txparentnodes: Buffer.from(ethProof.txparentnodes, 'hex'),
-      txpath: Buffer.from(ethProof.txpath, 'hex'),
-      receiptvalue: Buffer.from(ethProof.receiptvalue, 'hex'),
-      receiptroot: Buffer.from(ethProof.receiptroot, 'hex'),
-      receiptparentnodes: Buffer.from(ethProof.receiptparentnodes, 'hex')
+    try{
+      const ethProof = await utils.buildEthProof(assetOpts)
+      if(!changeAddress && this.Signer){
+        changeAddress = await this.Signer.getNewChangeAddress()
+      }
+      if (sysChangeAddress === changeAddress) {
+        throw Object.assign(
+          new Error('Syscoin and asset change address cannot be the same for assetAllocationMint!'),
+          { code: 402 }
+        )
+      }
+      assetMap = new Map([
+        [ethProof.assetguid, { changeAddress: changeAddress, outputs: [{ value: ethProof.amount, address: ethProof.destinationaddress }] }]
+      ])
+      assetOpts = {
+        ethtxid: Buffer.from(ethProof.ethtxid, 'hex'),
+        blockhash: Buffer.from(ethProof.blockhash, 'hex'),
+        txvalue: Buffer.from(ethProof.txvalue, 'hex'),
+        txroot: Buffer.from(ethProof.txroot, 'hex'),
+        txparentnodes: Buffer.from(ethProof.txparentnodes, 'hex'),
+        txpath: Buffer.from(ethProof.txpath, 'hex'),
+        receiptvalue: Buffer.from(ethProof.receiptvalue, 'hex'),
+        receiptroot: Buffer.from(ethProof.receiptroot, 'hex'),
+        receiptparentnodes: Buffer.from(ethProof.receiptparentnodes, 'hex')
+      }
+    }cathe(e){
+      return null;
     }
   }
 
