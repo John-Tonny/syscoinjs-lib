@@ -690,7 +690,7 @@ Syscoin.prototype.assetAllocationMint = async function (assetOpts, txOpts, asset
         receiptroot: Buffer.from(ethProof.receiptroot, 'hex'),
         receiptparentnodes: Buffer.from(ethProof.receiptparentnodes, 'hex')
       }
-    }cathe(e){
+    }catch(e){
       return null;
     }
   }
