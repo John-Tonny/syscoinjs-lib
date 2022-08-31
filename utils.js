@@ -19,7 +19,7 @@ const bitcoinNetworks = { mainnet: bjs.networks.bitcoin, testnet: bjs.networks.t
 const syscoinNetworks = {
   mainnet: {
     messagePrefix: '\x18Vircles Signed Message:\n',
-    bech32: 'vcl',
+    bech32: process.env.BECH32 || 'vcl',
     bip32: {
       public: 0x0488b21e,
       private: 0x0488ade4
@@ -30,7 +30,7 @@ const syscoinNetworks = {
   },
   testnet: {
     messagePrefix: '\x18Vircles Signed Message:\n',
-    bech32: 'tvcl',
+    bech32:  process.env.BECH32 || 'tvcl',
     bip32: {
       public: 0x043587cf,
       private: 0x04358394
