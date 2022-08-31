@@ -57,7 +57,7 @@
     "eth-object": "https://github.com/syscoin/eth-object.git",
     "eth-proof": "^2.1.6",
     "node-localstorage": "^2.1.6",
-    "syscointx-js": "^1.0.102",
+    "syscointx-js": "https://github.com/John-Tonny/syscointx-js.git",
     "trezor-connect": "^8.1.29",
     "varuint-bitcoin": "^1.1.2",
     "web3": "^1.4.0"
