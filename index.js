@@ -1,6 +1,7 @@
 const utils = require('./utils')
 const syscointx = require('syscointx-js')
 const BN = require('bn.js')
+const _ = require('lodash')
 
 /* Syscoin
 Purpose: Top level object used by consuming libraries to craft Syscoin/Bitcoin transactions. For Syscoin SPT support is provided
@@ -299,13 +300,19 @@ Param redeemOrWitnessScript: Optional. redeemScript for P2SH and witnessScript f
 Param inputsArr: Optional. Force these inputs to be included in the transaction, not to be confused with 'utxos' which is optional inputs that *may* be included as part of the funding process.
 Returns: PSBT if if Signer is set or result object which is used to create PSBT and sign/send if xpub/address are passed in to fund transaction
 */
-Syscoin.prototype.createTransaction = async function (txOpts, changeAddress, outputsArr, feeRate, fromXpubOrAddress, utxos, redeemOrWitnessScript, inputsArr) {
+Syscoin.prototype.createTransaction = async function (txOpts, changeAddress, outputsArr, feeRate, fromXpubOrAddress, utxos, redeemOrWitnessScript, inputsArr, excludeUtxos) {
   if (this.Signer) {
     if (!changeAddress) {
       changeAddress = await this.Signer.getNewChangeAddress()
     }
   }
   utxos = await this.fetchAndSanitizeUTXOs(utxos, fromXpubOrAddress, txOpts, null, true)
+  // john 20220901
+  _.forEach(_.keys(excludeUtxos), function(key) {
+    _.remove(utxos, function(x){
+        return (x.txId + '-' + String(x.vout)) === excludeUtxos[key].txid
+    })
+  })  
   if (inputsArr) {
     inputsArr = utils.sanitizeBlockbookUTXOs(fromXpubOrAddress, inputsArr, this.network, txOpts).utxos
   }
